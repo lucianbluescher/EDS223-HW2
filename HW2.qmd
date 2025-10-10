@@ -1,0 +1,66 @@
+---
+title: "HW2"
+format: html
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Load Librarys
+
+```{r}
+# Library Required packages
+library(sf) # For reading spatial data
+library(stars) # For reading raster data
+library(tmap) # For mapping
+library(tidyverse) # Probably will need it
+library(here) # Just always just in case
+```
+
+# Read in data
+
+```{r}
+
+mapping_inequality_raw <- st_read('data/mapping-inequality/mapping-inequality-los-angeles.json') 
+
+ejscreen_raw <- st_read(here("data","ejscreen","EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb")) |> 
+  st_transform(ejscreen_raw, crs = (st_crs(mapping_inequality_raw))) # Change CRS to match
+
+gbif <- st_read('data/gbif-birds-LA') 
+
+```
+## Check if CRS match
+
+```{r}
+st_crs(mapping_inequality_raw) == st_crs(gbif)  # See if CRS match
+st_crs(gbif) == st_crs(ejscreen_raw)
+  
+```
+
+# Part 1: Legacy of redlining in current environmental (injustice)
+
+## Data Exploration
+
+```{r}
+head(mapping_inequality_raw) # Show first 10 rows
+
+dim(mapping_inequality_raw) # Check size of dataframe
+
+colnames(mapping_inequality_raw) # See column names
+```
+## 1. Neighborhoods by HOLC Grade
+
+```{r}
+
+tm_shape(mapping_inequality_raw) + # Map data
+  tm_graticules() + # With gridlines
+  tm_polygons(fill = 'grade', # Color by grade
+              fill.legend = tm_legend(title = "HOLC Grade")) + # Legend tile
+  tm_title(text = "Neighborhoods by HOLC Grade") # Title
+ 
+```
+## Table Summary
+
+```{r}
+ej_holc <- st_join(mapping_inequality_raw, ejscreen_raw)
+```
+
