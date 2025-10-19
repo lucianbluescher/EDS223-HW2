@@ -9,6 +9,8 @@ Data provided by EDS 223 instruction and is from the
 United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool
 A version of the tool is available here: https://pedp-ejscreen.azurewebsites.net/
 
+Data Accessed: 10/12/25
+
 ### File Structure
 EDS223-HW2
 │   README.md
