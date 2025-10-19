@@ -1,13 +1,16 @@
 ---
-title: "HW2"
+title: "EDS 223 HW2 - Exploring patterns of environmental justice"
+subtitle: "Lucian Scher"
 format: pdf
 editor_options: 
   chunk_output_type: inline
+cold-fold: false
 ---
 
 # Load Librarys
 
-```{r, message=FALSE}
+```{r}
+#| message: false
 # Library Required packages
 library(sf) # For reading spatial data
 library(stars) # For reading raster data
@@ -22,14 +25,15 @@ library(gt) # for pretty
 
 # Read in data
 
-```{r message=FALSE}
+```{r}
+#| message: false
 
 ejscreen_raw <- st_read("data/ejscreen/EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb") 
 
 mapping_inequality_raw <- st_read('data/mapping-inequality/mapping-inequality-los-angeles.json') |> 
   st_transform(mapping_inequality_raw, crs = (st_crs(ejscreen_raw)))
   
-gbif <- st_read('data/gbif-birds-LA', quiet = TRUE) |> 
+gbif <- st_read('data/gbif-birds-LA') |> 
    st_transform(gbif, crs = (st_crs(ejscreen_raw)))
 
 ```
@@ -47,6 +51,7 @@ st_crs(gbif) == st_crs(ejscreen_raw)
 ## Data Exploration
 
 ```{r}
+#| message: false
 head(mapping_inequality_raw) # Show first 10 rows
 
 dim(mapping_inequality_raw) # Check size of dataframe
@@ -149,16 +154,15 @@ ej_holc_long <- ej_holc_means |>
 plot2 <- ggplot(data = ej_holc_long, aes(x = grade, y = percentile_means, fill = variables)) +
   geom_col() + #(position = "dodge") + # geom_col for bar chart, "dodge" for side-by-side bars
   labs(
-    title = "Life Expectancy 
-    by HOLC Grade",
-    x = "HOLC Security Grade",
+    title = "Life Expectancy", 
+    by = "Grade",
+    x = "Grade",
     y = "Mean Percentile",
     fill = "variables"
   ) +
-  
   scale_fill_manual(
     values = c("mean_pm25" = "blue", "mean_low_life_expectancy" = "red"),
-    labels = c("mean_pm25" = "Particulate Matter (PM2.5)", "mean_low_life_expectancy" = "Low Life Expectancy")
+    labels = c("mean_pm25" = "Particulate Matter (PM2.5)", "mean_low_life_expectancy" = "Low Life Expectancy (Percentile)")
   ) +
   theme_minimal()
 ```
@@ -180,6 +184,22 @@ HOLC_birds <- st_join(mapping_inequality_raw, gbif)
 ```
 
 ```{r}
+# Plot percentage of bird observations within each HOLC grade
+ggplot(HOLC_birds, aes(x = grade, fill = grade)) +
+  # Calculate percentages and ensure plotting happens after the transformation
+  geom_bar(aes(y = after_stat(count / sum(count) * 100)), color = "black") +
+ scale_fill_brewer(palette = "Reds") +
+  labs(
+    title = "Bird Observations by HOLC Grade %",
+    x = "HOLC Grade",
+    y = "% of Total Observations",
+    fill = "HOLC Grade"
+  ) +
+  theme_minimal()
+  
+```
+
+```{r}
 # Create map of bird observations over redlining data map
 tm_shape(HOLC_birds) + # Map data
   tm_graticules() + # With gridlines
@@ -194,4 +214,4 @@ tm_shape(gbif) +
 
 ### Reflection
 
-Here we can see a clear lack of either birds or bird observation data in red lined zones. This is clear by the appearance of yellow and blue zones that are hardly covered by bird observations in contrast with the blue and pink zones we can barely see because they are swarmed. The Diego Ellis Soto paper considers how our result may not be simply less birds, but instead less data collection going on in red lined zones in general.
+Here we can see a clear lack of either birds or bird observation data in red lined zones. This is clear by the appearance of yellow and blue zones that are hardly covered by bird observations in contrast with the blue and pink zones we can barely see because they are swarmed. The Diego Ellis Soto paper considers how our result may not be simply less birds, but instead less data collection going on in red lined zones in general. Our bird observation percentage plot shows a more balanced reporting of bird observations which may be a result of us not considering the unreliability of citizen science.
