@@ -1,4 +1,5 @@
-# Exploring patterns of environmental justice - EDS223-HW2
+# Exploring patterns of environmental justice
+## EDS223-HW2
 ### Authors: Lucian Scher for Annie Adams EDS 223 class. 
 
 
