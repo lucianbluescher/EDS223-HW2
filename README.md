@@ -1,9 +1,12 @@
 # EDS223-HW2
-Exploring patterns of environmental justice
+## Exploring patterns of environmental justice
+### Lucian Scher
 
 The goal of this homework is too practice building effective, responsible, accessible and aesthetically-pleasing maps,
 practice manipulating vector and raster data to build multi-layer maps and
 practice making maps in R, specifically using tmap.
+
+This repository contains the rendered quarto homework submission file. Data downloaded from the course website and a README. 
 
 Data provided by EDS 223 instruction and is from the
 United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool
