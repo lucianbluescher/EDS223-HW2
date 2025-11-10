@@ -1,6 +1,6 @@
 # Exploring patterns of environmental justice
 ## EDS223-HW2
-### Authors: Lucian Scher
+### Author: Lucian Scher
 
 The goal of this homework is too practice building effective, responsible, accessible and aesthetically-pleasing maps,
 practice manipulating vector and raster data to build multi-layer maps and
