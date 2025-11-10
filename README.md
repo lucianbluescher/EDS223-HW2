@@ -1,28 +1,31 @@
 # Exploring patterns of environmental justice
 ## EDS223-HW2
-### Authors: Lucian Scher for Annie Adams EDS 223 class. 
-
+### Authors: Lucian Scher
 
 The goal of this homework is too practice building effective, responsible, accessible and aesthetically-pleasing maps,
 practice manipulating vector and raster data to build multi-layer maps and
 practice making maps in R, specifically using tmap.
 
-This repository contains the rendered quarto homework submission file. Data downloaded from the course website and a README. AS well as additional project files.
+To quickly view this project just use the HW2.pdf rendering, to run the project use the HW2.qmd file. The first part of the analysis contains a map of HOLC (Home Owners' Loan Corporation) grades in Los Angeles, plots showing Mean of % low income persons by HOLC grade and low life expectancy over Particulate matter. The second part contains a plot and map of HOLC grades compared with citizen bird observations and a reflection on the results. 
 
-Data provided by EDS 223 instruction in a google drive folder, some is from the
-United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool
-A version of the tool is available here: https://pedp-ejscreen.azurewebsites.net/
+## Data
+Los Angeles mapping inequality data is from the Mapping Inequality project done by University of Richmond and can be found (here)[https://dsl.richmond.edu/panorama/redlining/#loc=5/39.1/-94.58]
+and GBIF bird data is from the Global Biodiversity Information Facility, The United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool is available here: https://pedp-ejscreen.azurewebsites.net/
 
 Data Accessed: 10/12/25
 
 ### File Structure
 EDS223-HW2
-│   README.md
-│   HW2.qmd
+│   README.md # README
+│   HW2.qmd # Code written in Markdown
+|   HW2.pdf # PDF rendering of analysis
 │   Rmd/Proj files    
 │
 └───.gitignore
-     └───data
+     └───data # All data used
          └───ejscreen
          └───gbif-birds-LA
          └───mapping-inequality
+
+## References and acknowledgements
+I would like to thank Annie Adams for teaching me how to analyze spatial data with environmental justice issues. 
