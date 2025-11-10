@@ -9,8 +9,11 @@ practice making maps in R, specifically using tmap.
 To quickly view this project just use the HW2.pdf rendering, to run the project use the HW2.qmd file. The first part of the analysis contains a map of HOLC (Home Owners' Loan Corporation) grades in Los Angeles, plots showing Mean of % low income persons by HOLC grade and low life expectancy over Particulate matter. The second part contains a plot and map of HOLC grades compared with citizen bird observations and a reflection on the results. 
 
 ## Data
-Los Angeles mapping inequality data is from the Mapping Inequality project done by University of Richmond and can be found (here)[https://dsl.richmond.edu/panorama/redlining/#loc=5/39.1/-94.58]
-and GBIF bird data is from the Global Biodiversity Information Facility, The United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool is available here: https://pedp-ejscreen.azurewebsites.net/
+Los Angeles mapping inequality data is from the Mapping Inequality project done by University of Richmond and can be found here: https://dsl.richmond.edu/panorama/redlining/#loc=5/39.1/-94.58
+
+The GBIF bird data is from the Global Biodiversity Information Facility (https://www.gbif.org/)
+
+The United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool is available here: https://pedp-ejscreen.azurewebsites.net/
 
 Data Accessed: 10/12/25
 
