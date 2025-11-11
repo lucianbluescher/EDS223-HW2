@@ -1,13 +1,12 @@
 ---
 title: "EDS 223 HW2 - Exploring patterns of environmental justice"
 subtitle: "Lucian Scher"
-format: pdf
+date: 11/10/2025
+format: html
 editor_options: 
   chunk_output_type: inline
 cold-fold: false
 ---
-
-# Load Librarys
 
 ```{r}
 #| message: false
@@ -16,34 +15,48 @@ library(sf) # For reading spatial data
 library(stars) # For reading raster data
 library(tmap) # For mapping
 library(tidyverse)
-library(here) 
 library(ggplot2)
 library(dplyr)
-library(patchwork) # for putting plots side by side
-library(gt) # for pretty
+library(RColorBrewer)
+library(testthat)
+library(knitr)
+library(kableExtra)
+library(gt)
 ```
 
 # Read in data
 
 ```{r}
 #| message: false
+#| warning: false
 
-ejscreen_raw <- st_read("data/ejscreen/EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb") 
+ejscreen_raw <- suppressMessages(st_read("data/ejscreen/EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb", quiet = TRUE))
+ejscreen_la <- ejscreen_raw |> 
+  filter(CNTY_NAME == "Los Angeles County")
 
-mapping_inequality_raw <- st_read('data/mapping-inequality/mapping-inequality-los-angeles.json') |> 
-  st_transform(mapping_inequality_raw, crs = (st_crs(ejscreen_raw)))
-  
-gbif <- st_read('data/gbif-birds-LA') |> 
-   st_transform(gbif, crs = (st_crs(ejscreen_raw)))
+mapping_inequality_raw <- suppressMessages(
+  st_read("data/mapping-inequality/mapping-inequality-los-angeles.json", quiet = TRUE)
+) |>
+  st_transform(st_crs(ejscreen_raw))
+
+gbif <- suppressMessages(
+  st_read("data/gbif-birds-LA", quiet = TRUE)
+) |>
+  st_transform(st_crs(ejscreen_raw))
 
 ```
 
 ## Check if CRS match
 
 ```{r}
-st_crs(mapping_inequality_raw) == st_crs(gbif)  # See if CRS match
-st_crs(gbif) == st_crs(ejscreen_raw)
-  
+if (all(
+  st_crs(ejscreen_raw) == st_crs(gbif),
+  st_crs(mapping_inequality_raw) == st_crs(gbif)
+)) {
+  message("All three CRS match.")
+} else {
+  message("The CRS do not match.")
+}
 ```
 
 # Part 1: Legacy of redlining in current environmental (injustice)
@@ -51,7 +64,8 @@ st_crs(gbif) == st_crs(ejscreen_raw)
 ## Data Exploration
 
 ```{r}
-#| message: false
+#| eval: false
+
 head(mapping_inequality_raw) # Show first 10 rows
 
 dim(mapping_inequality_raw) # Check size of dataframe
@@ -62,78 +76,140 @@ colnames(mapping_inequality_raw) # See column names
 ## 1. Neighborhoods by HOLC Grade
 
 ```{r}
-# Create grade map
-tm_shape(mapping_inequality_raw) + # Map data
-  tm_graticules() + # With gridlines
-  tm_polygons(fill = 'grade', # Color by grade
-              fill.legend = tm_legend(title = "HOLC Grade")) + # Legend tile
-  tm_title(text = "Neighborhoods by HOLC Grade") # Title
- 
+# Make grade a factor
+mapping_inequality_raw$grade <- factor(mapping_inequality_raw$grade, levels = c("A", "B", "C", "D"))
+
+# Reverse color scale
+colors <- rev(brewer.pal(4, "RdYlGn"))
+
+# Plot
+tm_shape(mapping_inequality_raw) +
+  tm_basemap() +
+  tm_compass(text.size = 0.4) +
+  tm_scalebar(text.size = 0.3) +
+  tm_fill(
+    "grade",
+    fill.scale = tm_scale_categorical(
+      values = colors,
+      labels = c(
+        "A = Best",
+        "B = Still Desirable",
+        "C = Definitely Declining",
+        "D = Hazardous"
+      )
+    ),
+    fill.legend = tm_legend(title = "HOLC Grade")
+  ) +
+  tm_borders(lwd = 0.2) +
+  tm_title(
+    text = "Los Angeles Neighborhoods by HOLC Grade",
+    size = 0.6
+  )
 ```
 
 ## Table Summary
 
 ```{r}
 # Attach HOLC grades to each EJScreen census block group
-
-ej_holc <- st_join(ejscreen_raw, mapping_inequality_raw) |> 
+ej_holc <- st_join(ejscreen_la, mapping_inequality_raw) |> 
   st_drop_geometry() # Drop unneeded geometries
+```
 
+```{r}
+#| eval: false
+#| include: false
 #glimpse(ej_holc)
 #sum(is.na(ej_holc$grade))
 #colnames(ej_holc)
 ```
 
 ```{r}
-# Create table summarizing grades
-ej_holc_grade_sum <- 
-  ej_holc |> 
-  group_by(grade) |> # Group by grade
-  summarise(n_block_groups = n()) |> # Summaries by number in each group
-  mutate(grade = ifelse(is.na(grade), "No Grade", grade)) |> # Change NA to None
-  ungroup() |> 
-  mutate( # Add column of group number out of 100%
-    percent = 100 * n_block_groups / sum(n_block_groups))
+ej_holc_grade_sum_na <- ej_holc |>
+  group_by(grade, .drop = FALSE) |> 
+  summarise(n_block_groups = n(), .groups = "drop") |>
+  mutate(percent = 100 * n_block_groups / sum(n_block_groups))
 
-ej_holc_grade_sum |> gt() |> 
-  cols_hide(columns = n_block_groups) |> # Hide summarization number
-  tab_header(
-    title = "Grade Percentage summary table") |> 
-  fmt_percent(
-    columns = percent,
-    scale_values = FALSE) # tell gt the values are 0-100
-  
+# Test that NA is present as a grade
+test_that("HOLC grade summary includes NA and sums to 100%", {
+  expect_true(any(is.na(ej_holc_grade_sum_na$grade)),
+              info = "NA (missing) grades should be included in summary.")})
+
+```
+
+```{r}
+# Table of percentages of block groups by grade
+ej_holc_grade_sum_na |>
+  select(grade, percent) |> 
+  mutate(percent = sprintf("%.2f%%", percent)) |> 
+  kbl(
+    caption = "Grade Percentage Summary Table: Including Missing Grades",
+    col.names = c("HOLC Grade", "Percent of Block Groups"),
+    align = c("c", "c"),
+    booktabs = TRUE,
+    format = "html"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center",
+    bootstrap_options = c("striped", "hover", "condensed", "responsive")
+  ) |>
+  add_header_above(c(" " = 2), bold = TRUE)
+
 ```
 
 ## Visualizations
 
+### Plot 1: Mean of % low income
+
 ```{r}
 # Calculate mean of each variable grouped by HOLC grade.
 ej_holc_means <- ej_holc |> 
-  mutate(grade = ifelse(is.na(grade), "None", grade)) |>   # Replace NA with "No Grade"
+  mutate(grade = ifelse(is.na(grade), "No Grade", grade)) |> 
   group_by(grade) |> 
   summarise(
-    mean_low_income = mean(LOWINCPCT, na.rm = TRUE), # Add new columns with means
+    mean_low_income = mean(LOWINCPCT, na.rm = TRUE),
     mean_pm25 = mean(P_PM25, na.rm = TRUE),
     mean_low_life_expectancy = mean(P_LIFEEXPPCT, na.rm = TRUE)
   ) |> 
   ungroup()
-```
 
-### Plot 1: Mean of % low income
+# Create a vector mapping names to colors
+grade_colors <- rev(brewer.pal(4, "RdYlGn"))
+my_colors <- c(
+  "A" = grade_colors[1], 
+  "B" = grade_colors[2], 
+  "C" = grade_colors[3],  
+  "D" = grade_colors[4],  
+  "No Grade" = "grey80"    
+)
 
-```{r}
-# Plot mean of % low income by grade
-plot1 <- ggplot(ej_holc_means, aes(x = grade, y = mean_low_income, fill = grade)) +
+# Add labels back to means 
+ej_holc_means$grade <- factor(
+  ej_holc_means$grade,
+  levels = c("1", "2", "3", "4", "No Grade"), 
+  labels = c("A", "B", "C", "D", "No Grade")  
+)
+
+# Plot mean % low income by grade
+ggplot(ej_holc_means, aes(x = grade, y = mean_low_income, fill = grade)) +
   geom_col() +
   labs(
-    title = "Mean % Low Income 
-    by HOLC Grade",
+    title = "LA Mean % Low Income by HOLC Grade",
     x = "HOLC Grade",
     y = "Mean % Low Income"
   ) +
   theme_minimal() +
-    scale_fill_brewer(palette = "Reds")
+  scale_fill_manual(
+    values = my_colors,
+    labels = c(
+      "A = Best",
+      "B = Still Desirable",
+      "C = Definitely Declining",
+      "D = Hazardous",
+      "No Grade"
+    )
+  ) + # Add percentage axis
+  scale_y_continuous(labels = scales::percent)
 ```
 
 ### Plot 2: Low life expectancy percentiles on top of Particulate matter percentiles
@@ -142,16 +218,16 @@ plot1 <- ggplot(ej_holc_means, aes(x = grade, y = mean_low_income, fill = grade)
 # Pivot long version for plotting
 ej_holc_long <- ej_holc_means |>
   pivot_longer(
-    cols = c(mean_pm25, mean_low_life_expectancy), # The columns you want to plot
-    names_to = "variables",                       # New column for the variables
-    values_to = "percentile_means"                 # New column for the values
+    cols = c(mean_pm25, mean_low_life_expectancy),
+    names_to = "variables",               
+    values_to = "percentile_means"    
   )
 
 ```
 
 ```{r}
 #Plot percentile of Particulate matter next to percentile of low life expectancy
-plot2 <- ggplot(data = ej_holc_long, aes(x = grade, y = percentile_means, fill = variables)) +
+ggplot(data = ej_holc_long, aes(x = grade, y = percentile_means, fill = variables)) +
   geom_col() + #(position = "dodge") + # geom_col for bar chart, "dodge" for side-by-side bars
   labs(
     title = "Life Expectancy", 
@@ -167,15 +243,9 @@ plot2 <- ggplot(data = ej_holc_long, aes(x = grade, y = percentile_means, fill =
   theme_minimal()
 ```
 
-```{r}
-# Show plots together using patchwork
-(plot1 + plot2) +
-  theme(plot.margin = margin(r = 20))
-```
-
 Both plots show a clear correlation between HOLC grade and environmental injustices. While it is not surprising that lower grades of "residential security" are related to lower income, it does set a precedent for unfair environmental and socioeconomic conditions. When compared directly next to low life expectancy and particulate matter we can see that the historical redlining grades represent lower quality of life and even shorter life for people in worse graded areas. We saw how red lined districts had less trees which is likely a direct causality of worse particulate matter and therefore reasonably can be presumed to have an effect on low life expectancy.
 
-## **Part 2: Legacy of redlining in biodiversity observations**
+# **Part 2: Legacy of redlining in biodiversity observations**
 
 ```{r}
 # Join gbif (Bird Observation data) and mapping_inequality_raw (HOLC grade data)
@@ -188,9 +258,9 @@ HOLC_birds <- st_join(mapping_inequality_raw, gbif)
 ggplot(HOLC_birds, aes(x = grade, fill = grade)) +
   # Calculate percentages and ensure plotting happens after the transformation
   geom_bar(aes(y = after_stat(count / sum(count) * 100)), color = "black") +
- scale_fill_brewer(palette = "Reds") +
+ scale_fill_brewer(palette = "RdYlGn", direction = -1) +
   labs(
-    title = "Bird Observations by HOLC Grade %",
+    title = "LA Bird Observations by HOLC Grade %",
     x = "HOLC Grade",
     y = "% of Total Observations",
     fill = "HOLC Grade"
@@ -200,16 +270,37 @@ ggplot(HOLC_birds, aes(x = grade, fill = grade)) +
 ```
 
 ```{r}
-# Create map of bird observations over redlining data map
-tm_shape(HOLC_birds) + # Map data
-  tm_graticules() + # With gridlines
-  tm_polygons(fill = 'grade', # Color by grade
-              fill.legend = tm_legend(title = "HOLC Grade with bird observations")) +
-tm_shape(gbif) +
-  tm_dots(size = 0.02,  
-          fill_alpha = 0.4,
-          col = "darkblue") +
-  tm_title(text = "Bird observations by HOLC Grade") # Title
+tmap_options(component.autoscale = FALSE)
+suppressMessages({
+  tm_shape(HOLC_birds) +
+  tm_basemap() +
+  tm_compass(text.size = 0.4) +
+  tm_scalebar(text.size = 0.4) +
+  tm_polygons(
+      fill = 'grade', 
+      fill.scale = tm_scale_categorical(
+        values = colors 
+      ),
+      fill.legend = tm_legend(
+        title = "HOLC Grade",
+        labels = c(
+          "A = Best",
+          "B = Still Desirable",
+          "C = Definitely Declining",
+          "D = Hazardous"
+        )
+      ),
+      na.color = "grey80", 
+      na.label = "No Grade"
+    ) +
+  tm_shape(gbif) +
+    tm_dots(
+      size = 0.02,
+      col = "darkblue",  
+      alpha = 0.2        
+    ) +
+  tm_title(text = "LA Bird Sighting Density by HOLC Grade", size = 1)
+})
 ```
 
 ### Reflection
